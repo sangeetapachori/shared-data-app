@@ -49,3 +49,37 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { id, completed } = await request.json();
+    
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Item ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // 1. Fetch current data
+    const existingData: any[] = (await redis.get('shared-data')) || [];
+    
+    // 2. Find the specific item and update it
+    const itemIndex = existingData.findIndex(item => item.id === id);
+    if (itemIndex > -1) {
+      existingData[itemIndex].completed = completed;
+      
+      // 3. Save back to Redis
+      await redis.set('shared-data', existingData);
+      
+      return NextResponse.json({ success: true, data: existingData[itemIndex] });
+    }
+
+    return NextResponse.json({ success: false, error: 'Item not found' }, { status: 404 });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to update data' },
+      { status: 500 }
+    );
+  }
+}
