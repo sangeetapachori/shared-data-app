@@ -1,21 +1,26 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast'; // <-- Import toast
 import { OrderItem } from '@/types';
 import * as api from '@/services/api';
 import { groupAndSortOrders, getDateLabel } from '@/utils/helpers';
+import { LOCATION_DATA } from '@/config/constants';
 
 export const useOrders = () => {
   const [data, setData] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Moved accordion state here
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    Today: true, Tomorrow: false, Yesterday: false
+    Today: false, Tomorrow: false, Yesterday: false,
   });
 
   const loadData = async () => {
-    const orders = await api.fetchOrders();
-    setData(orders);
-    setLoading(false);
+    try {
+      const orders = await api.fetchOrders();
+      setData(orders);
+    } catch (error) {
+      toast.error('Failed to load orders. Please refresh.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -23,29 +28,50 @@ export const useOrders = () => {
   }, []);
 
   const addOrder = async (content: string, orderDate: string, location: string) => {
+    const tempId = 'temp-' + Date.now();
     const optimisticItem: OrderItem = {
-      id: 'temp-' + Date.now(),
+      id: tempId,
       content,
       orderDate,
       location,
       completed: false,
     };
     
+    // 1. Optimistically add to UI
     setData(prev => [optimisticItem, ...prev]);
-    await api.createOrder(content, orderDate, location);
-    
-    // Automatically expand the group where the new order was just added
     const groupLabel = getDateLabel(orderDate);
     setExpandedGroups(prev => ({ ...prev, [groupLabel]: true }));
     
-    loadData(); 
+    // 2. Try saving to DB
+    try {
+      await api.createOrder(content, orderDate, location);
+      toast.success('Order added!');
+      loadData(); // Refresh to get real DB ID
+    } catch (error) {
+      // 3. Revert UI if DB fails
+      setData(prev => prev.filter(item => item.id !== tempId));
+      toast.error('Failed to add order. Please try again.');
+    }
   };
 
   const checkOrder = async (id: string) => {
+    // 1. Save current state in case we need to revert
+    const previousData = [...data];
+    
+    // 2. Optimistically update UI
     setData(prevData => prevData.map(item => 
       item.id === id ? { ...item, completed: true } : item
     ));
-    await api.completeOrder(id);
+
+    // 3. Try saving to DB
+    try {
+      await api.completeOrder(id);
+      toast.success('Order completed!');
+    } catch (error) {
+      // 4. Revert UI if DB fails
+      setData(previousData);
+      toast.error('Failed to update status.');
+    }
   };
 
   const toggleGroup = (label: string) => {
@@ -53,19 +79,10 @@ export const useOrders = () => {
   };
 
   const groupedData = groupAndSortOrders(data);
-  const defaultLocations = ['Bhuvi', 'PIT', 'VMP','Brenchwood'];
   const availableLocations = Array.from(new Set([
-    ...defaultLocations,
+    ...LOCATION_DATA.DEFAULTS,
     ...data.map(item => item.location).filter(Boolean)
   ]));
 
-  return { 
-    loading, 
-    groupedData, 
-    addOrder, 
-    checkOrder, 
-    availableLocations,
-    expandedGroups,
-    toggleGroup
-  };
+  return { loading, groupedData, addOrder, checkOrder, availableLocations, expandedGroups, toggleGroup };
 };
