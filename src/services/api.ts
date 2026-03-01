@@ -27,3 +27,13 @@ export const completeOrder = async (id: string): Promise<void> => {
   const json = await res.json();
   if (!res.ok || !json.success) throw new Error(json.error || 'Failed to update order');
 };
+
+export const softDeleteOrder = async (id: string): Promise<void> => {
+  const res = await fetch(API_ROUTES.ORDERS, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, isDeleted: true }), // Send the delete flag
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) throw new Error(json.error || 'Failed to delete order');
+};

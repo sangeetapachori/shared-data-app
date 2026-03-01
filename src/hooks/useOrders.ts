@@ -67,12 +67,7 @@ export const useOrders = () => {
       toast.error("Failed to add order.");
     }
   };
-  const availableProducts = Array.from(
-    new Set([
-      ...PRODUCT_DATA.DEFAULTS,
-      ...data.map((item) => item.product).filter(Boolean),
-    ]),
-  );
+ 
 
   const checkOrder = async (id: string) => {
     const previousData = [...data];
@@ -90,28 +85,46 @@ export const useOrders = () => {
     }
   };
 
-  const toggleGroup = (label: string) =>
-    setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  // 1. Add the delete function
+  const removeOrder = async (id: string) => {
+    // Save current state for rollback
+    const previousData = [...data];
+    
+    // Optimistically update UI by setting isDeleted to true
+    setData(prevData => prevData.map(item => 
+      item.id === id ? { ...item, isDeleted: true } : item
+    ));
 
-  const groupedData = groupAndSortOrders(data, groupBy);
+    try {
+      await api.softDeleteOrder(id);
+      toast.success('Order removed');
+    } catch (error) {
+      setData(previousData); // Rollback if it fails
+      toast.error('Failed to remove order');
+    }
+  };
 
-  const availableLocations = Array.from(
-    new Set([
-      ...LOCATION_DATA.DEFAULTS,
-      ...data.map((item) => item.location).filter(Boolean),
-    ]),
-  );
+  const toggleGroup = (label: string) => setExpandedGroups(prev => ({ ...prev, [label]: !prev[label] }));
 
-  return {
-    loading,
-    groupedData,
-    addOrder,
-    checkOrder,
-    availableLocations,
-    expandedGroups,
-    toggleGroup,
-    groupBy,
-    setGroupBy,
-    availableProducts,
+  // 2. FILTER out deleted items BEFORE grouping and sorting
+  const visibleData = data.filter(item => !item.isDeleted);
+  const groupedData = groupAndSortOrders(visibleData, groupBy);
+  
+  // 3. Filter locations and products based on visible data too
+  const availableLocations = Array.from(new Set([
+    ...LOCATION_DATA.DEFAULTS,
+    ...visibleData.map(item => item.location).filter(Boolean)
+  ]));
+
+  const availableProducts = Array.from(new Set([
+    ...PRODUCT_DATA.DEFAULTS,
+    ...visibleData.map(item => item.product).filter(Boolean)
+  ]));
+
+  return { 
+    loading, groupedData, addOrder, checkOrder, 
+    removeOrder, // <-- 4. Export the new function
+    availableLocations, availableProducts, 
+    expandedGroups, toggleGroup, groupBy, setGroupBy 
   };
 };

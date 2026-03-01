@@ -5,4 +5,5 @@ export type OrderItem = {
   completed?: boolean;
   location: string;
   product: string;
+  isDeleted?: boolean;
 };

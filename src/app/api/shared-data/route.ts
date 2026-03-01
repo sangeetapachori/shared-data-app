@@ -49,7 +49,8 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { id, completed } = await request.json();
+    const body = await request.json();
+    const { id, completed, isDeleted } = body;
     
     if (!id) return NextResponse.json({ success: false, error: 'ID required' }, { status: 400 });
 
@@ -57,7 +58,10 @@ export async function PATCH(request: Request) {
     const itemIndex = existingData.findIndex(item => item.id === id);
     
     if (itemIndex > -1) {
-      existingData[itemIndex].completed = completed;
+      // Update whatever fields were passed in the request
+      if (completed !== undefined) existingData[itemIndex].completed = completed;
+      if (isDeleted !== undefined) existingData[itemIndex].isDeleted = isDeleted;
+      
       await redis.set('shared-data', existingData);
       return NextResponse.json({ success: true, data: existingData[itemIndex] });
     }

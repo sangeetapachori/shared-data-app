@@ -14,7 +14,8 @@ export default function Home() {
     expandedGroups, 
     toggleGroup,
     groupBy,  
-    availableProducts,    // Pull the state
+    availableProducts,
+    removeOrder,    // Pull the state
     setGroupBy    // Pull the setter
   } = useOrders();
 
@@ -60,6 +61,7 @@ export default function Home() {
                 groupBy={groupBy}
                 onToggle={() => toggleGroup(dateLabel)}
                 onCheck={checkOrder}
+                onDelete={removeOrder}
               />
             ))
           )}
