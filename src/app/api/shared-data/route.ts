@@ -28,8 +28,7 @@ export async function POST(request: Request) {
     const newItem = {
       id: crypto.randomUUID(),
       content: body.content,
-      // We now expect the frontend to send the orderDate. 
-      // If it doesn't, we fall back to today.
+      product: body.product || 'Unspecified',
       orderDate: body.orderDate || new Date().toISOString(),
       completed: false,
       location: body.location || 'Unspecified'

@@ -8,11 +8,11 @@ export const fetchOrders = async (): Promise<OrderItem[]> => {
   return json.data;
 };
 
-export const createOrder = async (content: string, orderDate: string, location: string): Promise<void> => {
+export const createOrder = async (content: string, orderDate: string, location: string, product: string): Promise<void> => {
   const res = await fetch(API_ROUTES.ORDERS, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content, orderDate, location }),
+    body: JSON.stringify({ content, orderDate, location, product }),
   });
   const json = await res.json();
   if (!res.ok || !json.success) throw new Error(json.error || 'Failed to save order');

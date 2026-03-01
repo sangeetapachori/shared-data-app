@@ -8,6 +8,11 @@ export const LOCATION_DATA = {
   ADD_NEW_KEY: '__ADD_NEW__',
 };
 
+export const PRODUCT_DATA = {
+  DEFAULTS: ['Malai Paneer', 'Cream Cheese'], 
+  ADD_NEW_KEY: '__ADD_NEW__',
+};
+
 export const UI_STRINGS = {
   TODAY: 'Today',
   TOMORROW: 'Tomorrow',

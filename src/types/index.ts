@@ -4,4 +4,5 @@ export type OrderItem = {
   orderDate: string;
   completed?: boolean;
   location: string;
+  product: string;
 };

@@ -1,4 +1,8 @@
 import { OrderItem } from '@/types';
+import { UI_STRINGS } from '@/config/constants';
+
+// Add the type for our grouping options
+export type GroupByType = 'date' | 'location';
 
 export const getDateLabel = (dateString: string): string => {
   const date = new Date(dateString);
@@ -8,30 +12,32 @@ export const getDateLabel = (dateString: string): string => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
 
-  if (date.toDateString() === today.toDateString()) return 'Today';
-  if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
-  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  if (date.toDateString() === today.toDateString()) return UI_STRINGS.TODAY || 'Today';
+  if (date.toDateString() === tomorrow.toDateString()) return UI_STRINGS.TOMORROW || 'Tomorrow';
+  if (date.toDateString() === yesterday.toDateString()) return UI_STRINGS.YESTERDAY || 'Yesterday';
   
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-export const groupAndSortOrders = (data: OrderItem[]) => {
-  // Sort chronologically
+// Update this function to accept the groupBy parameter
+export const groupAndSortOrders = (data: OrderItem[], groupBy: GroupByType) => {
   const timeSortedData = [...data].sort((a, b) => {
-    const dateA = new Date(a.orderDate || (a as any).timestamp).getTime();
-    const dateB = new Date(b.orderDate || (b as any).timestamp).getTime();
+    const dateA = new Date(a.orderDate).getTime();
+    const dateB = new Date(b.orderDate).getTime();
     return dateB - dateA; 
   });
 
-  // Group by date label
   const groupedData = timeSortedData.reduce((acc, item) => {
-    const label = getDateLabel(item.orderDate || (item as any).timestamp);
+    // Determine the header label based on the selected toggle
+    const label = groupBy === 'date' 
+      ? getDateLabel(item.orderDate) 
+      : (item.location || 'Unspecified');
+      
     if (!acc[label]) acc[label] = [];
     acc[label].push(item);
     return acc;
   }, {} as Record<string, OrderItem[]>);
 
-  // Sort uncompleted to the top of each group
   Object.keys(groupedData).forEach(key => {
     groupedData[key].sort((a, b) => {
       if (a.completed && !b.completed) return 1;
